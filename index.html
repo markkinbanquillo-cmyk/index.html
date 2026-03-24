@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Color Match — 2 Player</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0e10;
+      --surface: #1a1a1e;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0efea;
+      --muted: rgba(240,239,234,0.45);
+      --accent: #c8f04d;
+      --radius: 14px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    #game {
+      width: 100%;
+      max-width: 520px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    header p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .scoreboards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .score-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      text-align: center;
+      transition: border-color 0.3s;
+    }
+
+    .score-card.active {
+      border-color: var(--accent);
+    }
+
+    .score-card .player-name {
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .score-card .score-num {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .score-card.active .score-num {
+      color: var(--accent);
+    }
+
+    .score-card .pts-label {
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .round-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.2rem;
+    }
+
+    .round-pill {
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 4px 14px;
+    }
+
+    .target-area {
+      text-align: center;
+      margin-bottom: 1.4rem;
+    }
+
+    .target-label {
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    #target-box {
+      width: 110px;
+      height: 110px;
+      border-radius: var(--radius);
+      margin: 0 auto;
+      border: 1px solid var(--border);
+      transition: background 0.35s ease;
+    }
+
+    .turn-indicator {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 10px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .turn-indicator span {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .timer-bar-wrap {
+      height: 5px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 1.2rem;
+    }
+
+    .timer-bar {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.08s linear, background 0.3s;
+    }
+
+    .message {
+      text-align: center;
+      font-size: 14px;
+      font-family: 'Space Mono', monospace;
+      min-height: 20px;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+
+    .color-btn {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: var(--radius);
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+
+    .color-btn:hover { transform: scale(1.08); }
+    .color-btn:active { transform: scale(0.94); }
+    .color-btn.correct { border-color: #63AA22; box-shadow: 0 0 0 3px rgba(99,170,34,0.25); }
+    .color-btn.wrong   { border-color: #E24B4A; box-shadow: 0 0 0 3px rgba(226,75,74,0.25); }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+    }
+
+    .controls button {
+      padding: 11px 32px;
+      border-radius: var(--radius);
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .controls button:hover {
+      background: var(--surface);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .winner-banner {
+      display: none;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .winner-banner h3 {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .winner-banner p {
+      font-size: 13px;
+      font-family: 'Space Mono', monospace;
+      color: var(--muted);
+      margin-bottom: 1.2rem;
+    }
+
+    .winner-banner button {
+      padding: 11px 28px;
+      border-radius: var(--radius);
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .winner-banner button:hover { background: rgba(255,255,255,0.06); }
+  </style>
+</head>
+<body>
+<div id="game">
+  <header>
+    <h1>Color Match</h1>
+    <p>2-player · match the target · fastest wins</p>
+  </header>
+
+  <div class="scoreboards">
+    <div class="score-card active" id="card1">
+      <div class="player-name">Player 1</div>
+      <div class="score-num" id="score1">0</div>
+      <div class="pts-label" id="pts1">— pts</div>
+    </div>
+    <div class="score-card" id="card2">
+      <div class="player-name">Player 2</div>
+      <div class="score-num" id="score2">0</div>
+      <div class="pts-label" id="pts2">— pts</div>
+    </div>
+  </div>
+
+  <div class="round-row">
+    <span class="round-pill" id="round-pill">Round 1 / 5</span>
+  </div>
+
+  <div class="target-area">
+    <div class="target-label">match this color</div>
+    <div id="target-box"></div>
+    <div class="turn-indicator">It's <span id="turn-name">Player 1</span>'s turn</div>
+  </div>
+
+  <div class="timer-bar-wrap">
+    <div class="timer-bar" id="timer-bar" style="width:100%;background:#63AA22;"></div>
+  </div>
+
+  <div class="message" id="message">Pick the matching color!</div>
+
+  <div class="color-grid" id="color-grid"></div>
+
+  <div class="winner-banner" id="winner-banner">
+    <h3 id="winner-text"></h3>
+    <p id="winner-sub"></p>
+    <button onclick="startGame()">Play again</button>
+  </div>
+
+  <div class="controls">
+    <button onclick="startGame()">New game</button>
+  </div>
+</div>
+
+<script>
+  const COLORS = [
+    { name: 'Red',    hex: '#E24B4A' },
+    { name: 'Orange', hex: '#EF9F27' },
+    { name: 'Yellow', hex: '#F5DA5A' },
+    { name: 'Green',  hex: '#63AA22' },
+    { name: 'Teal',   hex: '#1D9E75' },
+    { name: 'Blue',   hex: '#378ADD' },
+    { name: 'Indigo', hex: '#534AB7' },
+    { name: 'Purple', hex: '#A855F7' },
+    { name: 'Pink',   hex: '#D4537E' },
+    { name: 'Coral',  hex: '#D85A30' },
+  ];
+
+  let scores = [0, 0];
+  let currentPlayer = 0;
+  let round = 1;
+  const TOTAL_ROUNDS = 5;
+  const TIMER_MS = 5000;
+  let timerInterval = null;
+  let timerStart = null;
+  let answerLocked = false;
+  let targetIndex = 0;
+  let choices = [];
+
+  function shuffle(arr) {
+    let a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      let j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function startGame() {
+    scores = [0, 0];
+    currentPlayer = 0;
+    round = 1;
+    document.getElementById('score1').textContent = '0';
+    document.getElementById('score2').textContent = '0';
+    document.getElementById('pts1').textContent = '— pts';
+    document.getElementById('pts2').textContent = '— pts';
+    document.getElementById('winner-banner').style.display = 'none';
+    document.getElementById('color-grid').style.display = 'grid';
+    document.querySelector('.controls').style.display = 'flex';
+    document.getElementById('message').style.color = 'var(--muted)';
+    nextRound();
+  }
+
+  function nextRound() {
+    if (round > TOTAL_ROUNDS * 2) { endGame(); return; }
+    answerLocked = false;
+    clearTimer();
+
+    const shuffled = shuffle(COLORS);
+    choices = shuffled.slice(0, 5);
+    targetIndex = Math.floor(Math.random() * choices.length);
+
+    document.getElementById('target-box').style.background = choices[targetIndex].hex;
+    document.getElementById('turn-name').textContent = `Player ${currentPlayer + 1}`;
+    document.getElementById('message').textContent = 'Pick the matching color!';
+    document.getElementById('message').style.color = 'var(--muted)';
+
+    const rnd = Math.ceil(round / 2);
+    document.getElementById('round-pill').textContent = `Round ${Math.min(rnd, TOTAL_ROUNDS)} / ${TOTAL_ROUNDS}`;
+
+    document.getElementById('card1').classList.toggle('active', currentPlayer === 0);
+    document.getElementById('card2').classList.toggle('active', currentPlayer === 1);
+
+    renderButtons();
+    startTimer();
+  }
+
+  function renderButtons() {
+    const grid = document.getElementById('color-grid');
+    grid.innerHTML = '';
+    choices.forEach((c, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'color-btn';
+      btn.style.background = c.hex;
+      btn.onclick = () => handlePick(i);
+      grid.appendChild(btn);
+    });
+  }
+
+  function handlePick(i) {
+    if (answerLocked) return;
+    answerLocked = true;
+    clearTimer();
+    document.getElementById('timer-bar').style.width = '0%';
+
+    const btns = document.querySelectorAll('.color-btn');
+    btns[i].classList.add(i === targetIndex ? 'correct' : 'wrong');
+    btns[targetIndex].classList.add('correct');
+
+    const correct = i === targetIndex;
+    let pts = 0;
+
+    if (correct) {
+      const elapsed = (Date.now() - timerStart) / TIMER_MS;
+      pts = Math.max(1, Math.round(10 * (1 - elapsed)));
+      scores[currentPlayer] += pts;
+      document.getElementById('message').textContent = `Correct! +${pts} pts`;
+      document.getElementById('message').style.color = '#63AA22';
+    } else {
+      document.getElementById('message').textContent = `Wrong! No points.`;
+      document.getElementById('message').style.color = '#E24B4A';
+    }
+
+    document.getElementById(`score${currentPlayer + 1}`).textContent = scores[currentPlayer];
+    document.getElementById(`pts${currentPlayer + 1}`).textContent = `${scores[currentPlayer]} pts`;
+
+    setTimeout(() => {
+      currentPlayer = currentPlayer === 0 ? 1 : 0;
+      round++;
+      nextRound();
+    }, 1000);
+  }
+
+  function startTimer() {
+    timerStart = Date.now();
+    const bar = document.getElementById('timer-bar');
+    bar.style.width = '100%';
+    bar.style.background = '#63AA22';
+    timerInterval = setInterval(() => {
+      const elapsed = (Date.now() - timerStart) / TIMER_MS;
+      const pct = Math.max(0, 100 * (1 - elapsed));
+      bar.style.width = pct + '%';
+      bar.style.background = pct > 50 ? '#63AA22' : pct > 25 ? '#EF9F27' : '#E24B4A';
+      if (pct <= 0) {
+        clearInterval(timerInterval);
+        if (!answerLocked) timeUp();
+      }
+    }, 50);
+  }
+
+  function clearTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+  function timeUp() {
+    answerLocked = true;
+    const btns = document.querySelectorAll('.color-btn');
+    if (btns[targetIndex]) btns[targetIndex].classList.add('correct');
+    document.getElementById('message').textContent = `Time's up! No points.`;
+    document.getElementById('message').style.color = '#E24B4A';
+    setTimeout(() => {
+      currentPlayer = currentPlayer === 0 ? 1 : 0;
+      round++;
+      nextRound();
+    }, 1000);
+  }
+
+  function endGame() {
+    clearTimer();
+    document.getElementById('color-grid').style.display = 'none';
+    document.getElementById('message').textContent = '';
+    document.querySelector('.turn-indicator').textContent = '';
+
+    const banner = document.getElementById('winner-banner');
+    banner.style.display = 'block';
+    const [s1, s2] = scores;
+    let winText, subText;
+    if (s1 > s2)      { winText = 'Player 1 wins!';  subText = `${s1} pts vs ${s2} pts`; }
+    else if (s2 > s1) { winText = 'Player 2 wins!';  subText = `${s2} pts vs ${s1} pts`; }
+    else              { winText = "It's a tie!";      subText = `Both scored ${s1} pts`; }
+
+    document.getElementById('winner-text').textContent = winText;
+    document.getElementById('winner-sub').textContent = subText;
+  }
+
+  startGame();
+</script>
+</body>
+</html>
